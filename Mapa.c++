@@ -16,11 +16,17 @@
 #include <fstream>
 #include <vector>
 
-struct Point {
-    float x, y;
+struct Vertex
+{
+    float x, y, z;
 };
 
-std::vector<Point> mapPoints; // Armazena os pontos do mapa
+struct Line {
+    float v1, v2;
+};
+
+std::vector<Vertex> vertices; 
+std::vector<Line> lines;
 
 void loadMap(const std::string& filename){
     std::ifstream file(filename);
@@ -28,19 +34,31 @@ void loadMap(const std::string& filename){
         std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
         exit(EXIT_FAILURE);
     }
-    Point point;
-    while(file >> point.x >> point.y >> point.z){
-        mapPoints.push_back(point);
+    std::string line;
+    while(std::getline(file, line)){
+       std::istringstream iss(line);
+       std::string type;
+       iss >> type;
+       if(type == "v"){
+            Vertex vertex;
+            iss >> vertex.x >> vertex.y >> vertex.z;
+            vertices.push_back(vertex);
+       } else if(type == "l"){
+           Line line;
+           iss >> line.v1 >> line.v2;
+           lines.push_back(line);
+       }
     }
     file.close();
 }
 
 void drawMap(){
     glBegin(GL_LINES);
-    for(size_t = 0; i < mapPoints.size(); i++){
-        size_t next = (i+1) % mapPoints.size();
-        glVertex3f(mapPoints[i].x, mapPoints[i].y, mapPoints[i].z);
-        glVertex3f(mapPoints[next].x, mapPoints[next].y, mapPoints[next].z);
+    for(const Line& line : lines){
+        const Vertex& v1 = vertices[line.v1 - 1];
+        const Vertex& v2 = vertices[line.v2 - 1];
+        glVertex3f(v1.x, v1.y, v1.z);
+        glVertex3f(v2.x, v2.y, v2.z);
     }
     glEnd();
 }
