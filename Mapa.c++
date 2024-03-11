@@ -17,96 +17,69 @@
 #include <vector>
 #include <sstream>
 
-struct Vertex {
+using namespace std;
+
+// Estrutura que representa um ponto no espaço tridimensional
+struct Ponto3D {
     float x, y, z;
 };
 
-struct Line {
-    float v1, v2;
-};
+// Vetor que armazena os pontos do mapa
+vector<Ponto3D> pontos;
 
-std::vector<Vertex> vertices; 
-std::vector<Line> lines;
-
-void loadMap(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo " << filename << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string type;
-        iss >> type;
-
-        if (type == "v") {
-            Vertex vertex;
-            iss >> vertex.x >> vertex.y >> vertex.z;
-            vertices.push_back(vertex);
-        } else if (type == "l") {
-            Line line;
-            iss >> line.v1 >> line.v2;
-            lines.push_back(line);
-        }
-    }
-
-    file.close();
-}
-
-void drawMap() {
+// Função que desenha o mapa
+void desenhaMapa() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(1.0, 1.0, 1.0);
     glBegin(GL_LINES);
-    for (const Line& line : lines) {
-        const Vertex& v1 = vertices[line.v1 - 1];
-        const Vertex& v2 = vertices[line.v2 - 1];
-        glVertex3f(v1.x, v1.y, v1.z);
-        glVertex3f(v2.x, v2.y, v2.z);
+    for (int i = 0; i < pontos.size() - 1; i++) {
+        glVertex3f(pontos[i].x, pontos[i].y, pontos[i].z);
+        glVertex3f(pontos[i + 1].x, pontos[i + 1].y, pontos[i + 1].z);
     }
     glEnd();
+    glFlush();
 }
 
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glColor3f(1.0, 1.0, 1.0);  // Cor branca
-    // glEnable(GL_LIGHTING);
-    glLoadIdentity();
-    gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    drawMap();
-    glutSwapBuffers();
-
-    GLenum error = glGetError();
-    if (error != GL_NO_ERROR) {
-        std::cerr << "Erro OpenGL: " << gluErrorString(error) << std::endl;
+// Função que lê as coordenadas do mapa de um arquivo
+void leCoordenadasDoMapa(string nomeArquivo) {
+    ifstream arquivo(nomeArquivo);
+    string linha;
+    int y = 0;
+    while (getline(arquivo, linha)) {
+        istringstream iss(linha);
+        float z;
+        int x = 0;
+        while (iss >> z) {
+            Ponto3D p = {static_cast<float>(x), static_cast<float>(y), z};
+            pontos.push_back(p);
+            x++;
+        }
+        y++;
     }
 }
 
-void reshape(int w, int h) {
-    glViewport(0, 0, w, h);
+// Função que inicializa o OpenGL
+void inicializaOpenGL(int argc, char **argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(500, 500);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("Mapa 3D");
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0, static_cast<double>(w) / static_cast<double>(h), 1.0, 500.0);
+    gluPerspective(45.0f, 1.0f, 0.1f, 100.0f);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    gluLookAt(5.0, 5.0, 10.0, 5.0, 5.0, 0.0, 0.0, 1.0, 0.0);
 }
 
-int main(int argc, char** argv) {
-    if (argc != 2) {
-        std::cerr << "Uso: " << argv[0] << " <arquivo do mapa>" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutCreateWindow("Mapa");
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHTING);
-    loadMap(argv[1]);
-    glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
-    glClearColor(0.0, 0.0, 0.0, 1.0);  // Cor de fundo preta
+// Função principal
+int main(int argc, char **argv) {
+    leCoordenadasDoMapa("mapa.txt");
+    inicializaOpenGL(argc, argv);
+    gluLookAt(5.0, 10.0, 10.0, 5.0, 5.0, 0.0, 0.0, 1.0, 0.0);
+    glutDisplayFunc(desenhaMapa);
     glutMainLoop();
-
-    return EXIT_SUCCESS;
+    return 0;
 }
