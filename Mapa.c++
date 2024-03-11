@@ -18,64 +18,87 @@
 
 using namespace std;
 
-// Estrutura que representa um ponto no espaço tridimensional
 struct Ponto3D {
     float x, y, z;
 };
 
-vector<Ponto3D> pontos;
+vector<vector<Ponto3D>> mapa;
+int larguraMapa, alturaMapa;
 
 void desenhaMapa() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Habilita limpeza do buffer de profundidade
-    glColor3f(1.0, 1.0, 1.0); // Cor branca
-    glBegin(GL_LINES);
-    for (size_t i = 0; i < pontos.size() - 1; ++i) {
-        glVertex3f(pontos[i].x, pontos[i].y, pontos[i].z);
-        glVertex3f(pontos[i + 1].x, pontos[i + 1].y, pontos[i + 1].z);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    glColor3f(1.0, 1.0, 1.0);
+
+    for (int i = 0; i < alturaMapa - 1; i++) {
+        glBegin(GL_TRIANGLE_STRIP);
+        for (int j = 0; j < larguraMapa; j++) {
+            glVertex3f(mapa[i][j].x, mapa[i][j].y, mapa[i][j].z);
+            glVertex3f(mapa[i + 1][j].x, mapa[i + 1][j].y, mapa[i + 1][j].z);
+        }
+        glEnd();
     }
-    glEnd();
+
     glFlush();
+    glutSwapBuffers();
 }
 
-void leCoordenadasDoMapa(const string& nomeArquivo) {
+void leCoordenadasDoMapa(string nomeArquivo) {
     ifstream arquivo(nomeArquivo);
     string linha;
+    float z;
     int y = 0;
+    
     while (getline(arquivo, linha)) {
+        vector<Ponto3D> linhaMapa;
         istringstream iss(linha);
-        float z;
         int x = 0;
         while (iss >> z) {
-            Ponto3D p = {static_cast<float>(x), static_cast<float>(y), z};
-            pontos.push_back(p);
+            linhaMapa.push_back(Ponto3D{static_cast<float>(x), static_cast<float>(y), z});
             x++;
         }
+        mapa.push_back(linhaMapa);
         y++;
     }
+
+    alturaMapa = mapa.size();
+    larguraMapa = mapa[0].size();
 }
 
-void inicializaOpenGL(int argc, char **argv) {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH); // Habilita o buffer de profundidade
-    glutInitWindowSize(500, 500);
-    glutCreateWindow("Mapa 3D");
-    glEnable(GL_DEPTH_TEST); // Habilita teste de profundidade
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+void inicializaIluminacao() {
+    GLfloat luzAmbiente[] = {0.2, 0.2, 0.2, 1.0};
+    GLfloat luzDifusa[] = {0.7, 0.7, 0.7, 1.0}; // "cor"
+    GLfloat luzEspecular[] = {1.0, 1.0, 1.0, 1.0}; // "brilho"
+    GLfloat posicaoLuz[] = {20.0, 20.0, 50.0, 1.0};
 
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, luzAmbiente);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, luzDifusa);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, luzEspecular);
+    glLightfv(GL_LIGHT0, GL_POSITION, posicaoLuz);
+}
+
+void inicializaOpenGL(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(800, 600);
+    glutCreateWindow("Mapa 3D com Iluminação");
+    
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0, 1.0, 1.0, 100.0); // Ajusta a perspectiva
-
+    gluPerspective(45.0, (double)800 / 600, 0.1, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    // Ajusta a posição da câmera para melhor visualizar o mapa
-    gluLookAt(5.0, 10.0, 20.0, // Posição da câmera
-              5.0, 5.0, 0.0,  // Para onde a câmera aponta
-              0.0, 1.0, 0.0); // Vetor Up
+    gluLookAt(10.0, 10.0, 10.0, 5.0, 5.0, 0.0, 0.0, 1.0, 0.0);
+
+    inicializaIluminacao();
 }
 
-int main(int argc, char **argv) {
-    leCoordenadasDoMapa("mapa.txt"); // Certifique-se que o arquivo existe e está no formato correto
+int main(int argc, char** argv) {
+    leCoordenadasDoMapa("mapa.txt");
     inicializaOpenGL(argc, argv);
     glutDisplayFunc(desenhaMapa);
     glutMainLoop();
