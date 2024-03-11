@@ -10,7 +10,6 @@
  * Este programa lê um arquivo contendo as coordenadas de um mapa e desenha as linhas que o compõem.
  * Compilação: g++ -o Mapa Mapa.c++ -lGL -lGLU -lglut
  */
-
 #include <GL/freeglut.h>
 #include <iostream>
 #include <fstream>
@@ -24,15 +23,13 @@ struct Ponto3D {
     float x, y, z;
 };
 
-// Vetor que armazena os pontos do mapa
 vector<Ponto3D> pontos;
 
-// Função que desenha o mapa
 void desenhaMapa() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColor3f(1.0, 1.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Habilita limpeza do buffer de profundidade
+    glColor3f(1.0, 1.0, 1.0); // Cor branca
     glBegin(GL_LINES);
-    for (int i = 0; i < pontos.size() - 1; i++) {
+    for (size_t i = 0; i < pontos.size() - 1; ++i) {
         glVertex3f(pontos[i].x, pontos[i].y, pontos[i].z);
         glVertex3f(pontos[i + 1].x, pontos[i + 1].y, pontos[i + 1].z);
     }
@@ -40,8 +37,7 @@ void desenhaMapa() {
     glFlush();
 }
 
-// Função que lê as coordenadas do mapa de um arquivo
-void leCoordenadasDoMapa(string nomeArquivo) {
+void leCoordenadasDoMapa(const string& nomeArquivo) {
     ifstream arquivo(nomeArquivo);
     string linha;
     int y = 0;
@@ -58,27 +54,29 @@ void leCoordenadasDoMapa(string nomeArquivo) {
     }
 }
 
-// Função que inicializa o OpenGL
 void inicializaOpenGL(int argc, char **argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH); // Habilita o buffer de profundidade
     glutInitWindowSize(500, 500);
-    glutInitWindowPosition(100, 100);
     glutCreateWindow("Mapa 3D");
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glEnable(GL_DEPTH_TEST); // Habilita teste de profundidade
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0f, 1.0f, 0.1f, 100.0f);
+    gluPerspective(45.0, 1.0, 1.0, 100.0); // Ajusta a perspectiva
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(5.0, 5.0, 10.0, 5.0, 5.0, 0.0, 0.0, 1.0, 0.0);
+    // Ajusta a posição da câmera para melhor visualizar o mapa
+    gluLookAt(5.0, 10.0, 20.0, // Posição da câmera
+              5.0, 5.0, 0.0,  // Para onde a câmera aponta
+              0.0, 1.0, 0.0); // Vetor Up
 }
 
-// Função principal
 int main(int argc, char **argv) {
-    leCoordenadasDoMapa("mapa.txt");
+    leCoordenadasDoMapa("mapa.txt"); // Certifique-se que o arquivo existe e está no formato correto
     inicializaOpenGL(argc, argv);
-    gluLookAt(5.0, 10.0, 10.0, 5.0, 5.0, 0.0, 0.0, 1.0, 0.0);
     glutDisplayFunc(desenhaMapa);
     glutMainLoop();
     return 0;
