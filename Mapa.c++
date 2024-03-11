@@ -24,17 +24,21 @@ struct Ponto3D {
 
 vector<vector<Ponto3D>> mapa;
 int larguraMapa, alturaMapa;
+float escala = 1.0; // Ajuste essa escala para aumentar o espaçamento entre os pontos
 
 void desenhaMapa() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    glColor3f(1.0, 1.0, 1.0);
+
+    // Removendo a definição de cor anterior e aplicando material cinza
+    GLfloat corMaterial[] = {0.5, 0.5, 0.5, 1.0}; // Cor cinza
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, corMaterial);
 
     for (int i = 0; i < alturaMapa - 1; i++) {
         glBegin(GL_TRIANGLE_STRIP);
         for (int j = 0; j < larguraMapa; j++) {
-            glVertex3f(mapa[i][j].x, mapa[i][j].y, mapa[i][j].z);
-            glVertex3f(mapa[i + 1][j].x, mapa[i + 1][j].y, mapa[i + 1][j].z);
+            glVertex3f(mapa[i][j].x * escala, mapa[i][j].y * escala, mapa[i][j].z);
+            glVertex3f(mapa[i + 1][j].x * escala, mapa[i + 1][j].y * escala, mapa[i + 1][j].z);
         }
         glEnd();
     }
@@ -48,7 +52,7 @@ void leCoordenadasDoMapa(string nomeArquivo) {
     string linha;
     float z;
     int y = 0;
-    
+
     while (getline(arquivo, linha)) {
         vector<Ponto3D> linhaMapa;
         istringstream iss(linha);
@@ -65,34 +69,20 @@ void leCoordenadasDoMapa(string nomeArquivo) {
     larguraMapa = mapa[0].size();
 }
 
-void inicializaIluminacao() {
-    GLfloat luzAmbiente[] = {0.2, 0.2, 0.2, 1.0};
-    GLfloat luzDifusa[] = {0.7, 0.7, 0.7, 1.0}; // "cor"
-    GLfloat luzEspecular[] = {1.0, 1.0, 1.0, 1.0}; // "brilho"
-    GLfloat posicaoLuz[] = {20.0, 20.0, 50.0, 1.0};
-
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT, luzAmbiente);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, luzDifusa);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, luzEspecular);
-    glLightfv(GL_LIGHT0, GL_POSITION, posicaoLuz);
-}
-
 void inicializaOpenGL(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("Mapa 3D com Iluminação");
+    glutCreateWindow("Mapa 3D - Visualização Melhorada");
     
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0, (double)800 / 600, 0.1, 100.0);
+    gluPerspective(45.0, (double)800 / 600, 0.1, 1000.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(10.0, 10.0, 10.0, 5.0, 5.0, 0.0, 0.0, 1.0, 0.0);
+    // Ajuste a posição da câmera de acordo com o tamanho do seu mapa
+    gluLookAt(alturaMapa * escala / 2.0, larguraMapa * escala / 2.0, alturaMapa, alturaMapa * escala / 2.0, larguraMapa * escala / 2.0, 0.0, 0.0, 0.0, 1.0);
 
     inicializaIluminacao();
 }
