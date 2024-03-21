@@ -53,14 +53,14 @@ void loadPPM(const char *filename) {
 }
 
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT); // Limpa o buffer de cor
 
-    glBegin(GL_POINTS);
+    glBegin(GL_POINTS); // Desenhando os pontos
     for (int y = 0; y < imageHeight; ++y) {
         for (int x = 0; x < imageWidth; ++x) {
             Pixel &p = image[y * imageWidth + x];
             float height = (p.r + p.g + p.b) / 3.0f; // Altura proporcional à média das cores
-            glColor3ub(p.r, p.g, p.b);
+            glColor3ub(0, 0, 0);
             glVertex3f(x, y, height); // Definindo a coordenada Z como a altura do relevo
         }
     }
