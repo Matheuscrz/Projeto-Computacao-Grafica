@@ -10,100 +10,105 @@
  * Este programa lê um arquivo contendo as coordenadas de um mapa e desenha as linhas que o compõem.
  * Compilação: g++ -o Mapa Mapa.c++ -lGL -lGLU -lglut
  */
-
-#include <iostream>
-#include <fstream>
 #include <GL/glut.h>
-
-using namespace std;
+#include <fstream>
+#include <iostream>
 
 struct Pixel {
     unsigned char r, g, b;
 };
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
-
-Pixel *image;
+Pixel* image;
 int imageWidth, imageHeight;
 
-void loadPPM(const char *filename) {
-    ifstream file(filename, ios::binary);
+void readPPM(const std::string& fileName) {
+    std::ifstream file(fileName, std::ios::binary);
     if (!file) {
-        cerr << "Erro ao abrir o arquivo " << filename << endl;
-        exit(1);
+        std::cerr << "Erro ao abrir o arquivo" << std::endl;
+        return;
     }
 
-    string format;
-    file >> format;
-    if (format != "P6") {
-        cerr << "Formato de arquivo não suportado. Apenas P6 é suportado." << endl;
-        exit(1);
+    std::string header;
+    file >> header;
+    if (header != "P6") {
+        std::cerr << "Formato inválido" << std::endl;
+        return;
     }
 
     file >> imageWidth >> imageHeight;
-    int maxValue;
-    file >> maxValue;
-    file.ignore(1);
+
+    int maxColor;
+    file >> maxColor;
+
+    file.ignore(256, '\n');
 
     image = new Pixel[imageWidth * imageHeight];
 
-    file.read(reinterpret_cast<char *>(image), imageWidth * imageHeight * sizeof(Pixel));
-    file.close();
+    file.read(reinterpret_cast<char*>(image), imageWidth * imageHeight * 3);
+}
+
+void init() {
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    GLfloat light_position[] = { 1.0, 1.0, 1.0, 0.0 };
+    GLfloat white_light[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat lmodel_ambient[] = { 0.1, 0.1, 0.1, 1.0 };
+
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, white_light);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(60.0, (double)imageWidth / (double)imageHeight, 0.1, 100.0);
+    gluLookAt(imageWidth / 2.0, imageHeight, imageHeight / 2.0, imageWidth / 2.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 }
 
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT); // Limpa o buffer de cor
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBegin(GL_POINTS); // Desenhando os pontos
-    for (int y = 0; y < imageHeight; ++y) {
-        for (int x = 0; x < imageWidth; ++x) {
-            Pixel &p = image[y * imageWidth + x];
-            float height = (p.r + p.g + p.b) / 3.0f; // Altura proporcional à média das cores
-            glColor3ub(0, 0, 0);
-            glVertex3f(x, y, height); // Definindo a coordenada Z como a altura do relevo
+    glBegin(GL_TRIANGLES);
+    for (int y = 0; y < imageHeight - 1; ++y) {
+        for (int x = 0; x < imageWidth - 1; ++x) {
+            Pixel &p1 = image[y * imageWidth + x];
+            Pixel &p2 = image[(y + 1) * imageWidth + x];
+            Pixel &p3 = image[y * imageWidth + x + 1];
+            Pixel &p4 = image[(y + 1) * imageWidth + x + 1];
+
+            glColor3f(p1.r / 255.0f, p1.g / 255.0f, p1.b / 255.0f);
+            glVertex3f(x, y, p1.r / 255.0f);
+
+            glColor3f(p2.r / 255.0f, p2.g / 255.0f, p2.b / 255.0f);
+            glVertex3f(x, y + 1, p2.r / 255.0f);
+
+            glColor3f(p3.r / 255.0f, p3.g / 255.0f, p3.b / 255.0f);
+            glVertex3f(x + 1, y, p3.r / 255.0f);
+
+            glColor3f(p4.r / 255.0f, p4.g / 255.0f, p4.b / 255.0f);
+            glVertex3f(x + 1, y + 1, p4.r / 255.0f);
         }
     }
     glEnd();
 
-    glFlush();
+    glutSwapBuffers();
 }
 
-void init() {
-    glClearColor(1.0, 1.0, 1.0, 1.0);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    float centerX = imageWidth / 2.0f;
-    float centerY = imageHeight / 2.0f;
-    float centerZ = 100.0f; // Altura da câmera acima do mapa
-    float eyeX = centerX;
-    float eyeY = centerY;
-    float eyeZ = 500.0f; // Distância da câmera ao mapa
-    gluLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, 0, 1, 0);
-}
-
-int main(int argc, char **argv) {
-    if (argc != 2) {
-        cerr << "Uso: " << argv[0] << " <arquivo.ppm>" << endl;
-        return 1;
-    }
+int main(int argc, char** argv) {
+    readPPM("mapa.ppm");
 
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(WIDTH, HEIGHT);
-    glutCreateWindow("Mapa de Relevo");
-
-    glEnable(GL_DEPTH_TEST);
-
-    loadPPM(argv[1]);
-
-    glutDisplayFunc(display);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(imageWidth, imageHeight);
+    glutCreateWindow("PPM Image");
     init();
+    glutDisplayFunc(display);
     glutMainLoop();
 
     delete[] image;
+
     return 0;
 }
