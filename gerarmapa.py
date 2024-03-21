@@ -6,7 +6,7 @@ def generate_color():
 
 def generate_gradient_ppm(width, height):
     """Gera um arquivo PPM com um mapa de relevo com transição gradual dos valores."""
-    ppm_header = f"P3\n{width} {height}\n255\n"
+    ppm_header = f"P6\n{width} {height}\n255\n"
     ppm_data = ""
     
     for y in range(height):
